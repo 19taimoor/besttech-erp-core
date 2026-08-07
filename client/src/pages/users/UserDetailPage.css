@@ -1,0 +1,33 @@
+.user-detail-card {
+  padding: var(--space-5);
+}
+
+.user-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-5);
+  margin: 0;
+}
+
+@media (max-width: 700px) {
+  .user-detail-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.user-detail-grid dt {
+  font-size: 12px;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+  margin-bottom: var(--space-1);
+}
+
+.user-detail-grid dd {
+  margin: 0;
+  font-size: 14px;
+}
+
+.user-detail-back {
+  margin-top: var(--space-4);
+  font-size: 14px;
+}
