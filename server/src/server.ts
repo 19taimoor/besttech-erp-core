@@ -3,6 +3,10 @@ import { env } from "./config/env";
 
 const app = createApp();
 
-app.listen(env.port, () => {
-  console.log(`BestTech ERP API listening on port ${env.port} (${env.nodeEnv})`);
+const PORT = env.port || 3000;
+
+app.listen(PORT, () => {
+  console.log(`Server running on http://localhost:${PORT}`);
+  console.log(`Health: http://localhost:${PORT}/api/health`);
+  console.log(`Swagger: http://localhost:${PORT}/api-docs`);
 });
