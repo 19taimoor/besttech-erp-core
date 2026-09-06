@@ -44,6 +44,19 @@ const swaggerOptions: swaggerJsdoc.Options = {
         name: "Dashboard",
         description: "Dashboard endpoints",
       },
+
+      {
+        name: "Products",
+        description: "Product management",
+      },
+      {
+        name: "Items",
+        description: "Individual inventory item management",
+      },
+      {
+        name: "Warehouses",
+        description: "Warehouse management",
+      },
       {
         name: "Health",
         description: "Server health",

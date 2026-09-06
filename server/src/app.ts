@@ -28,7 +28,7 @@ export function createApp() {
         persistAuthorization: true,
         withCredentials: true,
       },
-      customSiteTitle: "Luggage Storage API",
+      customSiteTitle: "BestTch API",
     })
   );
 
