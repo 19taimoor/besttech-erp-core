@@ -9,38 +9,45 @@ const router = Router();
 /**
  * @openapi
  * /users:
- *   get:
- *     tags:
- *       - Users
- *     summary: Get all users
- *     description: Returns the list of users available to the current user manager.
- *     security:
- *       - bearerAuth: []
- *     responses:
- *       200:
- *         description: Users retrieved successfully
- *       401:
- *         description: Authentication required
- *       403:
- *         description: You do not have permission to access users
- *
  *   post:
  *     tags:
  *       - Users
- *     summary: Create user
- *     description: Creates a new user.
- *     security:
- *       - bearerAuth: []
+ *     summary: Create a new user
+ *     description: Creates a new ERP user.
  *     requestBody:
  *       required: true
  *       content:
  *         application/json:
  *           schema:
  *             type: object
- *             additionalProperties: true
- *           example:
- *             name: John Doe
- *             email: john@example.com
+ *             required:
+ *               - firstName
+ *               - lastName
+ *               - email
+ *               - phoneNumber
+ *               - roleId
+ *               - password
+ *             properties:
+ *               firstName:
+ *                 type: string
+ *                 example: John
+ *               lastName:
+ *                 type: string
+ *                 example: Doe
+ *               email:
+ *                 type: string
+ *                 format: email
+ *                 example: john.doe@besttch.com
+ *               phoneNumber:
+ *                 type: string
+ *                 example: "+447123456789"
+ *               roleId:
+ *                 type: integer
+ *                 example: 2
+ *               password:
+ *                 type: string
+ *                 format: password
+ *                 example: Password123!
  *     responses:
  *       201:
  *         description: User created successfully
@@ -50,7 +57,10 @@ const router = Router();
  *         description: Authentication required
  *       403:
  *         description: Permission denied
+ *       422:
+ *         description: Validation failed
  */
+
 router.get(
   "/",
   requireAuth,

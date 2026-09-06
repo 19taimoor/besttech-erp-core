@@ -25,30 +25,64 @@ const userSelect = {
   lastLoginAt: true,
   createdAt: true,
   updatedAt: true,
-  role: { select: { id: true, name: true, displayName: true } },
+  role: {
+    select: {
+      id: true,
+      name: true,
+      displayName: true,
+    },
+  },
 } satisfies Prisma.UserSelect;
 
 export async function listUsers(params: ListUsersParams) {
   const where: Prisma.UserWhereInput = {
     deletedAt: null,
-    ...(params.status ? { status: params.status } : {}),
-    ...(params.role ? { role: { name: params.role } } : {}),
+
+    ...(params.status
+      ? {
+          status: params.status,
+        }
+      : {}),
+
+    ...(params.role
+      ? {
+          role: {
+            name: params.role,
+          },
+        }
+      : {}),
+
     ...(params.search
       ? {
           OR: [
-            { name: { contains: params.search } },
-            { email: { contains: params.search } },
+            {
+              name: {
+                contains: params.search,
+                mode: "insensitive",
+              },
+            },
+            {
+              email: {
+                contains: params.search,
+                mode: "insensitive",
+              },
+            },
           ],
         }
       : {}),
   };
 
   const [total, users] = await Promise.all([
-    prisma.user.count({ where }),
+    prisma.user.count({
+      where,
+    }),
+
     prisma.user.findMany({
       where,
       select: userSelect,
-      orderBy: { [params.sort]: params.direction },
+      orderBy: {
+        [params.sort]: params.direction,
+      },
       skip: (params.page - 1) * params.perPage,
       take: params.perPage,
     }),
@@ -66,35 +100,47 @@ export async function listUsers(params: ListUsersParams) {
 }
 
 export async function getUserById(id: number) {
-  const user = await prisma.user.findFirst({ where: { id, deletedAt: null }, select: userSelect });
+  const user = await prisma.user.findFirst({
+    where: {
+      id,
+      deletedAt: null,
+    },
+    select: userSelect,
+  });
+
   if (!user) {
     throw ApiError.notFound("User not found");
   }
+
   return user;
 }
 
 export async function createUser(input: {
-  name: string;
+  firstName: string;
+  lastName: string;
   email: string;
-  password: string;
+  phoneNumber: string;
   roleId: number;
-  phone?: string | null;
+  password: string;
   status?: "active" | "inactive";
 }) {
   await assertRoleExists(input.roleId);
   await assertEmailAvailable(input.email);
 
-  const hashed = await bcrypt.hash(input.password, 10);
+  const hashedPassword = await bcrypt.hash(input.password, 10);
+
+  const fullName = `${input.firstName.trim()} ${input.lastName.trim()}`;
 
   return prisma.user.create({
     data: {
-      name: input.name,
-      email: input.email,
-      password: hashed,
+      name: fullName,
+      email: input.email.toLowerCase(),
+      password: hashedPassword,
       roleId: input.roleId,
-      phone: input.phone ?? null,
+      phone: input.phoneNumber,
       status: input.status ?? "active",
     },
+
     select: userSelect,
   });
 }
@@ -116,60 +162,142 @@ export async function updateUser(
   if (input.roleId) {
     await assertRoleExists(input.roleId);
   }
-  if (input.email && input.email !== target.email) {
+
+  if (input.email && input.email.toLowerCase() !== target.email.toLowerCase()) {
     await assertEmailAvailable(input.email);
   }
 
   return prisma.user.update({
-    where: { id },
-    data: {
-      ...(input.name ? { name: input.name } : {}),
-      ...(input.email ? { email: input.email } : {}),
-      ...(input.password ? { password: await bcrypt.hash(input.password, 10) } : {}),
-      ...(input.roleId ? { roleId: input.roleId } : {}),
-      ...(input.phone !== undefined ? { phone: input.phone } : {}),
-      ...(input.status ? { status: input.status } : {}),
+    where: {
+      id,
     },
+
+    data: {
+      ...(input.name
+        ? {
+            name: input.name,
+          }
+        : {}),
+
+      ...(input.email
+        ? {
+            email: input.email.toLowerCase(),
+          }
+        : {}),
+
+      ...(input.password
+        ? {
+            password: await bcrypt.hash(input.password, 10),
+          }
+        : {}),
+
+      ...(input.roleId
+        ? {
+            roleId: input.roleId,
+          }
+        : {}),
+
+      ...(input.phone !== undefined
+        ? {
+            phone: input.phone,
+          }
+        : {}),
+
+      ...(input.status
+        ? {
+            status: input.status,
+          }
+        : {}),
+    },
+
     select: userSelect,
   });
 }
 
 export async function deleteUser(id: number, actingUser: AuthUser) {
   await findEditableTargetOrThrow(id, actingUser);
-  await prisma.user.update({ where: { id }, data: { deletedAt: new Date() } });
+
+  await prisma.user.update({
+    where: {
+      id,
+    },
+    data: {
+      deletedAt: new Date(),
+    },
+  });
 }
 
-export async function setUserStatus(id: number, status: "active" | "inactive", actingUser: AuthUser) {
+export async function setUserStatus(
+  id: number,
+  status: "active" | "inactive",
+  actingUser: AuthUser
+) {
   await findEditableTargetOrThrow(id, actingUser);
-  return prisma.user.update({ where: { id }, data: { status }, select: userSelect });
+
+  return prisma.user.update({
+    where: {
+      id,
+    },
+
+    data: {
+      status,
+    },
+
+    select: userSelect,
+  });
 }
 
 async function assertRoleExists(roleId: number) {
-  const role = await prisma.role.findUnique({ where: { id: roleId } });
+  const role = await prisma.role.findUnique({
+    where: {
+      id: roleId,
+    },
+  });
+
   if (!role) {
-    throw ApiError.unprocessable("Validation failed", { roleId: ["Selected role does not exist"] });
+    throw ApiError.unprocessable("Validation failed", {
+      roleId: ["Selected role does not exist"],
+    });
   }
 }
 
 async function assertEmailAvailable(email: string) {
-  const existing = await prisma.user.findFirst({ where: { email, deletedAt: null } });
+  const existing = await prisma.user.findFirst({
+    where: {
+      email: email.toLowerCase(),
+      deletedAt: null,
+    },
+  });
+
   if (existing) {
-    throw ApiError.unprocessable("Validation failed", { email: ["Email is already in use"] });
+    throw ApiError.unprocessable("Validation failed", {
+      email: ["Email is already in use"],
+    });
   }
 }
 
-// Admins may not touch Super Admin accounts (docs/DECISIONS.md); Super Admin has no such limit.
+// Admins may not modify Super Admin accounts.
+// Super Admin has no such restriction.
 async function findEditableTargetOrThrow(id: number, actingUser: AuthUser) {
   const target = await prisma.user.findFirst({
-    where: { id, deletedAt: null },
-    include: { role: true },
+    where: {
+      id,
+      deletedAt: null,
+    },
+
+    include: {
+      role: true,
+    },
   });
 
   if (!target) {
     throw ApiError.notFound("User not found");
   }
 
-  if (actingUser.roleName === ROLES.ADMIN && target.role.name === ROLES.SUPER_ADMIN) {
+  if (
+    actingUser.roleName === ROLES.ADMIN &&
+    target.role.name === ROLES.SUPER_ADMIN
+  ) {
     throw ApiError.forbidden("Admins cannot modify Super Admin accounts");
   }
 
